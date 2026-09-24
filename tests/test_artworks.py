@@ -214,3 +214,5 @@ def test_artist_can_delete_own_artwork(client):
     )
 
     assert get_response.status_code == 404
+    
+    

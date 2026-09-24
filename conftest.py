@@ -6,11 +6,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from database import Base, get_db
-from main import app
-
+from app.models.artist_profile_model import ArtistProfile
 from app.models.artwork_model import Artwork
 from app.models.user_model import User
+from database import Base, get_db
+from main import app
 
 
 load_dotenv()

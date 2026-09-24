@@ -1,0 +1,2 @@
+uploads/profile-images/*
+!uploads/profile-images/.gitkeep
