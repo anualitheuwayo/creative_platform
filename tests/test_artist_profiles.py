@@ -1,3 +1,6 @@
+from io import BytesIO
+from pathlib import Path
+
 def register_user(
     client,
     full_name,
@@ -282,3 +285,94 @@ def test_delete_my_artist_profile(client):
     assert get_response.json()["detail"] == (
         "Artist profile not found."
     )
+    
+def test_artist_can_upload_profile_image(client):
+    _, headers = create_artist_and_login(client)
+
+    create_artist_profile(
+        client=client,
+        headers=headers,
+    )
+
+    response = client.post(
+        "/api/v1/artist-profiles/me/image",
+        files={
+            "image": (
+                "profile.png",
+                BytesIO(b"fake-image-content"),
+                "image/png",
+            )
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+
+    profile = response.json()
+
+    assert profile["profile_image_url"] is not None
+    assert profile["profile_image_url"].startswith(
+        "/uploads/profile-images/"
+    )
+    assert profile["profile_image_url"].endswith(
+        ".png"
+    )
+
+    saved_filename = profile["profile_image_url"].split(
+        "/"
+    )[-1]
+
+    saved_file = Path(
+        "uploads/profile-images"
+    ) / saved_filename
+
+    assert saved_file.exists()
+
+    saved_file.unlink()
+
+
+def test_profile_image_upload_requires_profile(client):
+    _, headers = create_artist_and_login(client)
+
+    response = client.post(
+        "/api/v1/artist-profiles/me/image",
+        files={
+            "image": (
+                "profile.jpg",
+                BytesIO(b"fake-image-content"),
+                "image/jpeg",
+            )
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == (
+        "Artist profile not found."
+    )
+
+
+def test_profile_image_upload_rejects_invalid_type(client):
+    _, headers = create_artist_and_login(client)
+
+    create_artist_profile(
+        client=client,
+        headers=headers,
+    )
+
+    response = client.post(
+        "/api/v1/artist-profiles/me/image",
+        files={
+            "image": (
+                "document.pdf",
+                BytesIO(b"not-an-image"),
+                "application/pdf",
+            )
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Only JPEG, PNG, and WEBP images are allowed."
+    )    

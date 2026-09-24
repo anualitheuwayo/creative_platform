@@ -1,4 +1,11 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    UploadFile,
+    status,
+)
+
 from sqlalchemy.orm import Session
 
 from app.dependencies.auth_dependency import require_artist
@@ -59,6 +66,21 @@ def get_my_artist_profile(
         db=db,
         current_user=current_user,
     )
+    
+@router.post(
+    "/me/image",
+    response_model=ArtistProfileResponse,
+)
+def upload_my_profile_image(
+    image: UploadFile = File(...),
+    current_user: User = Depends(require_artist),
+    db: Session = Depends(get_db),
+):
+    return artist_profile_service.upload_my_profile_image(
+        db=db,
+        image=image,
+        current_user=current_user,
+    )    
 
 
 @router.patch(
@@ -103,3 +125,5 @@ def get_artist_profile(
         db=db,
         artist_profile_id=artist_profile_id,
     )
+    
+    

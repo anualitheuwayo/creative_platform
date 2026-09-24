@@ -105,3 +105,15 @@ def update_profile_image_url(
     db.refresh(artist_profile)
 
     return artist_profile    
+
+def update_profile_image_url(
+    db: Session,
+    artist_profile: ArtistProfile,
+    profile_image_url: str,
+) -> ArtistProfile:
+    artist_profile.profile_image_url = profile_image_url
+
+    db.commit()
+    db.refresh(artist_profile)
+
+    return artist_profile
