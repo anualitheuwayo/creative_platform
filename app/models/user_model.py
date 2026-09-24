@@ -62,7 +62,14 @@ class User(Base):
     )
     
     artworks = relationship(
-    "Artwork",
-    back_populates="artist",
-    cascade="all, delete-orphan",
-) 
+        "Artwork",
+        back_populates="artist",
+        cascade="all, delete-orphan",
+    ) 
+    
+    artist_profile = relationship(
+        "ArtistProfile",
+        back_populates="artist",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )

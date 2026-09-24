@@ -1,15 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.security import (
-    create_access_token,
-    verify_password,
-)
-from app.models.user_model import User
 from app.schemas.auth_schema import (
     LoginRequest,
     TokenResponse,
 )
+from app.services.auth_service import login_user
 from database import get_db
 
 
@@ -27,41 +23,8 @@ def login(
     login_data: LoginRequest,
     db: Session = Depends(get_db),
 ):
-    user = db.query(User).filter(
-        User.email == login_data.email
-    ).first()
-
-    invalid_credentials = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Incorrect email or password.",
-        headers={
-            "WWW-Authenticate": "Bearer",
-        },
+    return login_user(
+        db=db,
+        email=login_data.email,
+        password=login_data.password,
     )
-
-    if not user:
-        raise invalid_credentials
-
-    if not verify_password(
-        login_data.password,
-        user.password_hash,
-    ):
-        raise invalid_credentials
-
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Inactive user.",
-        )
-
-    access_token = create_access_token(
-        data={
-            "sub": str(user.user_id),
-            "role": user.role.value,
-        }
-    )
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
