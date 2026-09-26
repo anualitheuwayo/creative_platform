@@ -1,10 +1,22 @@
+
 env/
+venv/
+.venv/
+
+
 __pycache__/
 *.pyc
-.env
 
-uploads/profile-images/*
-!uploads/profile-images/.gitkeep
+
+.env
+.env.*
+!.env.example
+
+/uploads/profile-images/*
+!/uploads/profile-images/.gitkeep
+
 
 /uploads/artwork-images/*
 
+
+.pytest_cache/

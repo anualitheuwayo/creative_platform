@@ -33,7 +33,7 @@ Base.metadata.create_all(bind=engine)
 
 
 app = FastAPI(
-    title="Creative Marketplace API",
+    title="Creative Platform API",
     version="1.0.0",
 )
 
@@ -60,5 +60,5 @@ app.include_router(notification_router)
 @app.get("/")
 def home():
     return {
-        "message": "Welcome to the Creative Marketplace API"
+        "message": "Welcome to the Creative Platform API"
     }
