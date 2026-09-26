@@ -73,3 +73,36 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
+    
+    favourites = relationship(
+        "Favourite",
+        back_populates="client",
+        cascade="all, delete-orphan",
+    )
+    
+    availabilities = relationship(
+        "Availability",
+        back_populates="artist",
+        cascade="all, delete-orphan",
+    )
+    
+    client_bookings = relationship(
+        "Booking",
+        foreign_keys="Booking.client_id",
+        back_populates="client",
+        cascade="all, delete-orphan",
+    )
+
+
+    artist_bookings = relationship(
+        "Booking",
+        foreign_keys="Booking.artist_id",
+        back_populates="artist",
+        cascade="all, delete-orphan",
+    )
+    
+    notifications = relationship(
+        "Notification",
+        back_populates="recipient",
+        cascade="all, delete-orphan",
+    )

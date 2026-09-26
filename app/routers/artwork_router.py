@@ -1,10 +1,13 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    UploadFile,
+    status,
+)
 from sqlalchemy.orm import Session
 
-from app.dependencies.auth_dependency import (
-    get_current_user,
-    require_artist,
-)
+from app.dependencies.auth_dependency import require_artist
 from app.models.user_model import User
 from app.schemas.artwork_schema import (
     ArtworkCreate,
@@ -47,6 +50,24 @@ def get_artworks(
 ):
     return artwork_service.get_artworks(
         db=db,
+    )
+
+
+@router.post(
+    "/{artwork_id}/image",
+    response_model=ArtworkResponse,
+)
+def upload_artwork_image(
+    artwork_id: int,
+    image: UploadFile = File(...),
+    current_user: User = Depends(require_artist),
+    db: Session = Depends(get_db),
+):
+    return artwork_service.upload_artwork_image(
+        db=db,
+        artwork_id=artwork_id,
+        image=image,
+        current_user=current_user,
     )
 
 

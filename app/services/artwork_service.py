@@ -1,4 +1,8 @@
-from fastapi import HTTPException, status
+import shutil
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.models.artwork_model import Artwork
@@ -7,6 +11,26 @@ from app.repositories import artwork_repository
 from app.schemas.artwork_schema import (
     ArtworkCreate,
     ArtworkUpdate,
+)
+
+
+ALLOWED_IMAGE_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+}
+
+
+ALLOWED_IMAGE_SUFFIXES = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+}
+
+
+UPLOAD_DIRECTORY = Path(
+    "uploads/artwork-images"
 )
 
 
@@ -112,4 +136,69 @@ def delete_artwork(
     artwork_repository.delete_artwork(
         db=db,
         artwork=artwork,
+    )
+
+
+def upload_artwork_image(
+    db: Session,
+    artwork_id: int,
+    image: UploadFile,
+    current_user: User,
+) -> Artwork:
+    artwork = get_artwork(
+        db=db,
+        artwork_id=artwork_id,
+    )
+
+    if artwork.artist_id != current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "You can only upload an image "
+                "for your own artwork."
+            ),
+        )
+
+    if image.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Only JPEG, PNG, and WEBP "
+                "images are allowed."
+            ),
+        )
+
+    original_suffix = Path(
+        image.filename or ""
+    ).suffix.lower()
+
+    if original_suffix not in ALLOWED_IMAGE_SUFFIXES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid image file extension.",
+        )
+
+    UPLOAD_DIRECTORY.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    filename = f"{uuid4().hex}{original_suffix}"
+
+    file_path = UPLOAD_DIRECTORY / filename
+
+    with file_path.open("wb") as output_file:
+        shutil.copyfileobj(
+            image.file,
+            output_file,
+        )
+
+    image_url = (
+        f"/uploads/artwork-images/{filename}"
+    )
+
+    return artwork_repository.update_artwork_image_url(
+        db=db,
+        artwork=artwork,
+        image_url=image_url,
     )

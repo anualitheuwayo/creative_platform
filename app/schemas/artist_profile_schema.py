@@ -33,6 +33,13 @@ class ArtistProfileCreate(BaseModel):
         max_length=500,
     )
 
+    phone_number: Optional[str] = Field(
+        default=None,
+        max_length=30,
+    )
+
+    show_phone_number: bool = False
+
 
 class ArtistProfileUpdate(BaseModel):
     bio: Optional[str] = Field(
@@ -64,6 +71,13 @@ class ArtistProfileUpdate(BaseModel):
         max_length=500,
     )
 
+    phone_number: Optional[str] = Field(
+        default=None,
+        max_length=30,
+    )
+
+    show_phone_number: Optional[bool] = None
+
 
 class ArtistProfileResponse(BaseModel):
     artist_profile_id: int
@@ -73,6 +87,8 @@ class ArtistProfileResponse(BaseModel):
     location: Optional[str]
     hourly_rate: Optional[Decimal]
     profile_image_url: Optional[str]
+    phone_number: Optional[str]
+    show_phone_number: bool
     is_verified: bool
     created_at: datetime
     updated_at: datetime

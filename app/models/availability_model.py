@@ -1,12 +1,11 @@
 from sqlalchemy import (
     Boolean,
     Column,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
-    Numeric,
-    String,
-    Text,
+    Time,
 )
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -14,14 +13,16 @@ from sqlalchemy.sql import func
 from database import Base
 
 
-class ArtistProfile(Base):
-    __tablename__ = "artist_profiles"
+class Availability(Base):
+    __tablename__ = "availabilities"
 
-    artist_profile_id = Column(
+
+    availability_id = Column(
         Integer,
         primary_key=True,
         index=True,
     )
+
 
     artist_id = Column(
         Integer,
@@ -29,58 +30,43 @@ class ArtistProfile(Base):
             "users.user_id",
             ondelete="CASCADE",
         ),
-        unique=True,
         nullable=False,
         index=True,
     )
 
-    bio = Column(
-        Text,
+
+    available_date = Column(
+        Date,
+        nullable=False,
+        index=True,
+    )
+
+
+    start_time = Column(
+        Time,
         nullable=False,
     )
 
-    specialization = Column(
-        String(150),
+
+    end_time = Column(
+        Time,
         nullable=False,
     )
 
-    location = Column(
-        String(150),
-        nullable=True,
-    )
-    
-    phone_number = Column(
-        String(30),
-        nullable=True,
-)
 
-    show_phone_number = Column(
+    is_available = Column(
         Boolean,
         nullable=False,
-        default=False,
-)
-
-    hourly_rate = Column(
-        Numeric(10, 2),
-        nullable=True,
+        default=True,
     )
 
-    profile_image_url = Column(
-        String(500),
-        nullable=True,
-    )
-
-    is_verified = Column(
-        Boolean,
-        nullable=False,
-        default=False,
-    )
 
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
     )
+
 
     updated_at = Column(
         DateTime(timezone=True),
@@ -89,7 +75,14 @@ class ArtistProfile(Base):
         nullable=False,
     )
 
+
     artist = relationship(
         "User",
-        back_populates="artist_profile",
+        back_populates="availabilities",
     )
+    
+    booking = relationship(
+    "Booking",
+    back_populates="availability",
+    uselist=False,
+)

@@ -1,6 +1,7 @@
 from io import BytesIO
 from pathlib import Path
 
+
 def register_user(
     client,
     full_name,
@@ -23,7 +24,11 @@ def register_user(
     return response.json()
 
 
-def login_user(client, email, password):
+def login_user(
+    client,
+    email,
+    password,
+):
     response = client.post(
         "/api/v1/auth/login",
         json={
@@ -41,7 +46,10 @@ def login_user(client, email, password):
     }
 
 
-def artist_profile_payload():
+def artist_profile_payload(
+    phone_number="+254712345678",
+    show_phone_number=False,
+):
     return {
         "bio": (
             "I am a digital artist who creates illustrations, "
@@ -53,31 +61,46 @@ def artist_profile_payload():
         "profile_image_url": (
             "https://example.com/images/artist-profile.jpg"
         ),
+        "phone_number": phone_number,
+        "show_phone_number": show_phone_number,
     }
 
 
-def create_artist_and_login(client):
+def create_artist_and_login(
+    client,
+    full_name="Amina Hassan",
+    email="amina@example.com",
+    password="creative123",
+):
     artist = register_user(
         client=client,
-        full_name="Amina Hassan",
-        email="amina@example.com",
-        password="creative123",
+        full_name=full_name,
+        email=email,
+        password=password,
         role="artist",
     )
 
     headers = login_user(
         client=client,
-        email="amina@example.com",
-        password="creative123",
+        email=email,
+        password=password,
     )
 
     return artist, headers
 
 
-def create_artist_profile(client, headers):
+def create_artist_profile(
+    client,
+    headers,
+    phone_number="+254712345678",
+    show_phone_number=False,
+):
     response = client.post(
         "/api/v1/artist-profiles",
-        json=artist_profile_payload(),
+        json=artist_profile_payload(
+            phone_number=phone_number,
+            show_phone_number=show_phone_number,
+        ),
         headers=headers,
     )
 
@@ -103,7 +126,13 @@ def test_create_artist_profile(client):
     assert profile["artist_id"] == artist["user_id"]
     assert profile["bio"].startswith("I am a digital artist")
     assert profile["specialization"] == "Digital Illustration"
+    assert profile["location"] == "Nairobi"
     assert float(profile["hourly_rate"]) == 2500.00
+    assert profile["profile_image_url"] == (
+        "https://example.com/images/artist-profile.jpg"
+    )
+    assert profile["phone_number"] == "+254712345678"
+    assert profile["show_phone_number"] is False
     assert profile["is_verified"] is False
 
 
@@ -169,7 +198,7 @@ def test_get_artist_profiles(client):
     )
 
     response = client.get(
-        "/api/v1/artist-profiles"
+        "/api/v1/artist-profiles",
     )
 
     assert response.status_code == 200
@@ -193,21 +222,24 @@ def test_get_one_artist_profile(client):
 
     response = client.get(
         "/api/v1/artist-profiles/"
-        f"{profile['artist_profile_id']}"
+        f"{profile['artist_profile_id']}",
     )
 
     assert response.status_code == 200
-    assert response.json()["artist_profile_id"] == (
+
+    public_profile = response.json()
+
+    assert public_profile["artist_profile_id"] == (
         profile["artist_profile_id"]
     )
-    assert response.json()["specialization"] == (
+    assert public_profile["specialization"] == (
         "Digital Illustration"
     )
 
 
 def test_get_missing_artist_profile(client):
     response = client.get(
-        "/api/v1/artist-profiles/99999"
+        "/api/v1/artist-profiles/99999",
     )
 
     assert response.status_code == 404
@@ -230,10 +262,15 @@ def test_get_my_artist_profile(client):
     )
 
     assert response.status_code == 200
-    assert response.json()["artist_profile_id"] == (
+
+    my_profile = response.json()
+
+    assert my_profile["artist_profile_id"] == (
         profile["artist_profile_id"]
     )
-    assert response.json()["artist_id"] == artist["user_id"]
+    assert my_profile["artist_id"] == artist["user_id"]
+    assert my_profile["phone_number"] == "+254712345678"
+    assert my_profile["show_phone_number"] is False
 
 
 def test_update_my_artist_profile(client):
@@ -254,11 +291,186 @@ def test_update_my_artist_profile(client):
     )
 
     assert response.status_code == 200
-    assert response.json()["location"] == "Mombasa"
-    assert float(response.json()["hourly_rate"]) == 3000.00
-    assert response.json()["specialization"] == (
+
+    profile = response.json()
+
+    assert profile["location"] == "Mombasa"
+    assert float(profile["hourly_rate"]) == 3000.00
+    assert profile["specialization"] == (
         "Digital Illustration"
     )
+
+
+def test_artist_can_update_phone_number(client):
+    _, headers = create_artist_and_login(client)
+
+    create_artist_profile(
+        client=client,
+        headers=headers,
+    )
+
+    response = client.patch(
+        "/api/v1/artist-profiles/me",
+        json={
+            "phone_number": "+254799123456",
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+
+    profile = response.json()
+
+    assert profile["phone_number"] == "+254799123456"
+    assert profile["show_phone_number"] is False
+
+
+def test_artist_can_enable_phone_number_visibility(client):
+    _, headers = create_artist_and_login(client)
+
+    create_artist_profile(
+        client=client,
+        headers=headers,
+        show_phone_number=False,
+    )
+
+    response = client.patch(
+        "/api/v1/artist-profiles/me",
+        json={
+            "show_phone_number": True,
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["show_phone_number"] is True
+
+
+def test_artist_can_disable_phone_number_visibility(client):
+    _, headers = create_artist_and_login(client)
+
+    create_artist_profile(
+        client=client,
+        headers=headers,
+        show_phone_number=True,
+    )
+
+    response = client.patch(
+        "/api/v1/artist-profiles/me",
+        json={
+            "show_phone_number": False,
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["show_phone_number"] is False
+
+
+def test_public_profile_hides_phone_when_visibility_is_false(
+    client,
+):
+    _, headers = create_artist_and_login(client)
+
+    profile = create_artist_profile(
+        client=client,
+        headers=headers,
+        phone_number="+254712345678",
+        show_phone_number=False,
+    )
+
+    response = client.get(
+        "/api/v1/artist-profiles/"
+        f"{profile['artist_profile_id']}",
+    )
+
+    assert response.status_code == 200
+
+    public_profile = response.json()
+
+    assert public_profile["show_phone_number"] is False
+    assert public_profile["phone_number"] is None
+
+
+def test_public_profile_shows_phone_when_visibility_is_true(
+    client,
+):
+    _, headers = create_artist_and_login(client)
+
+    profile = create_artist_profile(
+        client=client,
+        headers=headers,
+        phone_number="+254712345678",
+        show_phone_number=True,
+    )
+
+    response = client.get(
+        "/api/v1/artist-profiles/"
+        f"{profile['artist_profile_id']}",
+    )
+
+    assert response.status_code == 200
+
+    public_profile = response.json()
+
+    assert public_profile["show_phone_number"] is True
+    assert public_profile["phone_number"] == "+254712345678"
+
+
+def test_public_artist_profiles_hide_private_phone_numbers(
+    client,
+):
+    _, headers = create_artist_and_login(client)
+
+    profile = create_artist_profile(
+        client=client,
+        headers=headers,
+        phone_number="+254712345678",
+        show_phone_number=False,
+    )
+
+    response = client.get(
+        "/api/v1/artist-profiles",
+    )
+
+    assert response.status_code == 200
+
+    profiles = response.json()
+
+    assert len(profiles) == 1
+    assert profiles[0]["artist_profile_id"] == (
+        profile["artist_profile_id"]
+    )
+    assert profiles[0]["phone_number"] is None
+    assert profiles[0]["show_phone_number"] is False
+
+
+def test_public_artist_profiles_show_public_phone_numbers(
+    client,
+):
+    _, headers = create_artist_and_login(client)
+
+    profile = create_artist_profile(
+        client=client,
+        headers=headers,
+        phone_number="+254712345678",
+        show_phone_number=True,
+    )
+
+    response = client.get(
+        "/api/v1/artist-profiles",
+    )
+
+    assert response.status_code == 200
+
+    profiles = response.json()
+
+    assert len(profiles) == 1
+    assert profiles[0]["artist_profile_id"] == (
+        profile["artist_profile_id"]
+    )
+    assert profiles[0]["phone_number"] == "+254712345678"
+    assert profiles[0]["show_phone_number"] is True
 
 
 def test_delete_my_artist_profile(client):
@@ -285,7 +497,8 @@ def test_delete_my_artist_profile(client):
     assert get_response.json()["detail"] == (
         "Artist profile not found."
     )
-    
+
+
 def test_artist_can_upload_profile_image(client):
     _, headers = create_artist_and_login(client)
 
@@ -301,7 +514,7 @@ def test_artist_can_upload_profile_image(client):
                 "profile.png",
                 BytesIO(b"fake-image-content"),
                 "image/png",
-            )
+            ),
         },
         headers=headers,
     )
@@ -341,7 +554,7 @@ def test_profile_image_upload_requires_profile(client):
                 "profile.jpg",
                 BytesIO(b"fake-image-content"),
                 "image/jpeg",
-            )
+            ),
         },
         headers=headers,
     )
@@ -367,7 +580,7 @@ def test_profile_image_upload_rejects_invalid_type(client):
                 "document.pdf",
                 BytesIO(b"not-an-image"),
                 "application/pdf",
-            )
+            ),
         },
         headers=headers,
     )
@@ -375,4 +588,30 @@ def test_profile_image_upload_rejects_invalid_type(client):
     assert response.status_code == 400
     assert response.json()["detail"] == (
         "Only JPEG, PNG, and WEBP images are allowed."
-    )    
+    )
+
+
+def test_profile_image_upload_rejects_invalid_extension(client):
+    _, headers = create_artist_and_login(client)
+
+    create_artist_profile(
+        client=client,
+        headers=headers,
+    )
+
+    response = client.post(
+        "/api/v1/artist-profiles/me/image",
+        files={
+            "image": (
+                "image.pdf",
+                BytesIO(b"fake-image-content"),
+                "image/png",
+            ),
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == (
+        "Invalid image file extension."
+    )
