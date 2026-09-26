@@ -1,9 +1,18 @@
+from uuid import uuid4
+
+
+def make_test_email(
+    prefix: str,
+) -> str:
+    return f"{prefix}-{uuid4().hex}@example.com"
+
+
 def register_user(
     client,
-    full_name,
-    email,
-    password,
-    role,
+    full_name: str,
+    email: str,
+    password: str,
+    role: str,
 ):
     response = client.post(
         "/api/v1/users",
@@ -20,7 +29,11 @@ def register_user(
     return response.json()
 
 
-def login_user(client, email, password):
+def login_user(
+    client,
+    email: str,
+    password: str,
+) -> dict:
     response = client.post(
         "/api/v1/auth/login",
         json={
@@ -31,7 +44,11 @@ def login_user(client, email, password):
 
     assert response.status_code == 200
 
-    token = response.json()["access_token"]
+    body = response.json()
+    token = body["access_token"]
+
+    assert token
+    assert body["token_type"] == "bearer"
 
     return {
         "Authorization": f"Bearer {token}",
@@ -39,10 +56,14 @@ def login_user(client, email, password):
 
 
 def test_login_returns_access_token(client):
+    email = make_test_email(
+        "artist-login",
+    )
+
     register_user(
         client=client,
         full_name="Amina Hassan",
-        email="amina@example.com",
+        email=email,
         password="creative123",
         role="artist",
     )
@@ -50,7 +71,7 @@ def test_login_returns_access_token(client):
     response = client.post(
         "/api/v1/auth/login",
         json={
-            "email": "amina@example.com",
+            "email": email,
             "password": "creative123",
         },
     )
@@ -65,10 +86,14 @@ def test_login_returns_access_token(client):
 
 
 def test_login_rejects_wrong_password(client):
+    email = make_test_email(
+        "artist-wrong-password",
+    )
+
     register_user(
         client=client,
         full_name="Amina Hassan",
-        email="amina@example.com",
+        email=email,
         password="creative123",
         role="artist",
     )
@@ -76,40 +101,52 @@ def test_login_rejects_wrong_password(client):
     response = client.post(
         "/api/v1/auth/login",
         json={
-            "email": "amina@example.com",
+            "email": email,
             "password": "wrongpassword",
         },
     )
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Incorrect email or password."
+    assert response.json()["detail"] == (
+        "Incorrect email or password."
+    )
 
 
 def test_login_rejects_unknown_email(client):
+    email = make_test_email(
+        "unknown-user",
+    )
+
     response = client.post(
         "/api/v1/auth/login",
         json={
-            "email": "missing@example.com",
+            "email": email,
             "password": "creative123",
         },
     )
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Incorrect email or password."
+    assert response.json()["detail"] == (
+        "Incorrect email or password."
+    )
 
 
 def test_get_my_profile(client):
+    email = make_test_email(
+        "artist-profile",
+    )
+
     registered_user = register_user(
         client=client,
         full_name="Amina Hassan",
-        email="amina@example.com",
+        email=email,
         password="creative123",
         role="artist",
     )
 
     headers = login_user(
-        client,
-        email="amina@example.com",
+        client=client,
+        email=email,
         password="creative123",
     )
 
@@ -119,13 +156,19 @@ def test_get_my_profile(client):
     )
 
     assert response.status_code == 200
-    assert response.json()["user_id"] == registered_user["user_id"]
-    assert response.json()["email"] == "amina@example.com"
-    assert response.json()["role"] == "artist"
-    assert "password_hash" not in response.json()
+
+    body = response.json()
+
+    assert body["user_id"] == registered_user["user_id"]
+    assert body["email"] == email
+    assert body["role"] == "artist"
+    assert "password_hash" not in body
+    assert "password" not in body
 
 
 def test_get_my_profile_requires_token(client):
-    response = client.get("/api/v1/users/me")
+    response = client.get(
+        "/api/v1/users/me",
+    )
 
     assert response.status_code == 401

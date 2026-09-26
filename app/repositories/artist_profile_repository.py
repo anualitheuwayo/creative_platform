@@ -13,6 +13,8 @@ def create_artist_profile(
     location: Optional[str],
     hourly_rate,
     profile_image_url: Optional[str],
+    phone_number: Optional[str],
+    show_phone_number: bool,
 ) -> ArtistProfile:
     artist_profile = ArtistProfile(
         artist_id=artist_id,
@@ -21,6 +23,8 @@ def create_artist_profile(
         location=location,
         hourly_rate=hourly_rate,
         profile_image_url=profile_image_url,
+        phone_number=phone_number,
+        show_phone_number=show_phone_number,
     )
 
     db.add(artist_profile)
@@ -79,7 +83,11 @@ def update_artist_profile(
     update_data: dict,
 ) -> ArtistProfile:
     for field, value in update_data.items():
-        setattr(artist_profile, field, value)
+        setattr(
+            artist_profile,
+            field,
+            value,
+        )
 
     db.commit()
     db.refresh(artist_profile)
@@ -93,18 +101,7 @@ def delete_artist_profile(
 ) -> None:
     db.delete(artist_profile)
     db.commit()
-    
-def update_profile_image_url(
-    db: Session,
-    artist_profile: ArtistProfile,
-    profile_image_url: str,
-) -> ArtistProfile:
-    artist_profile.profile_image_url = profile_image_url
 
-    db.commit()
-    db.refresh(artist_profile)
-
-    return artist_profile    
 
 def update_profile_image_url(
     db: Session,

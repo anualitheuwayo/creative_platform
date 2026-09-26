@@ -30,6 +30,20 @@ def create_artwork(
     return artwork
 
 
+def get_artworks(
+    db: Session,
+    skip: int = 0,
+    limit: int = 100,
+) -> list[Artwork]:
+    return (
+        db.query(Artwork)
+        .order_by(Artwork.artwork_id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
 def get_artwork_by_id(
     db: Session,
     artwork_id: int,
@@ -38,34 +52,6 @@ def get_artwork_by_id(
         db.query(Artwork)
         .filter(Artwork.artwork_id == artwork_id)
         .first()
-    )
-
-
-def get_artworks(
-    db: Session,
-    skip: int = 0,
-    limit: int = 100,
-) -> list[Artwork]:
-    return (
-        db.query(Artwork)
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
-
-
-def get_artworks_by_artist_id(
-    db: Session,
-    artist_id: int,
-    skip: int = 0,
-    limit: int = 100,
-) -> list[Artwork]:
-    return (
-        db.query(Artwork)
-        .filter(Artwork.artist_id == artist_id)
-        .offset(skip)
-        .limit(limit)
-        .all()
     )
 
 
@@ -83,9 +69,34 @@ def update_artwork(
     return artwork
 
 
+def update_artwork_image_url(
+    db: Session,
+    artwork: Artwork,
+    image_url: str,
+) -> Artwork:
+    artwork.image_url = image_url
+
+    db.commit()
+    db.refresh(artwork)
+
+    return artwork
+
+
 def delete_artwork(
     db: Session,
     artwork: Artwork,
 ) -> None:
     db.delete(artwork)
     db.commit()
+    
+def update_artwork_image_url(
+    db: Session,
+    artwork: Artwork,
+    image_url: str,
+) -> Artwork:
+    artwork.image_url = image_url
+
+    db.commit()
+    db.refresh(artwork)
+
+    return artwork    

@@ -80,3 +80,15 @@ def require_artist(
         )
 
     return current_user
+
+
+def require_client(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if current_user.role != UserRole.CLIENT:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only clients can perform this action.",
+        )
+
+    return current_user

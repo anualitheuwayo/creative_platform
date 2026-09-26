@@ -10,6 +10,22 @@ from app.routers.auth_router import router as auth_router
 from app.routers.artist_profile_router import (
     router as artist_profile_router,
 )
+from app.routers.favourite_router import (
+    router as favourite_router,
+)
+
+from app.routers.availability_router import (
+    router as availability_router,
+)
+
+from app.routers.booking_router import (
+    router as booking_router,
+)
+
+from app.routers.notification_router import (
+    router as notification_router,
+)
+
 from database import Base, engine
 
 
@@ -18,6 +34,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Creative Marketplace API",
+    version="1.0.0",
 )
 
 os.makedirs(
@@ -35,6 +52,11 @@ app.include_router(user_router)
 app.include_router(artwork_router)
 app.include_router(auth_router)
 app.include_router(artist_profile_router)
+app.include_router(favourite_router)
+app.include_router(availability_router)
+app.include_router(booking_router)
+app.include_router(notification_router)
+
 @app.get("/")
 def home():
     return {

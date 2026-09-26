@@ -81,3 +81,9 @@ class Artwork(Base):
         "User",
         back_populates="artworks",
     )
+    
+    favourites = relationship(
+        "Favourite",
+        back_populates="artwork",
+        cascade="all, delete-orphan",
+    )

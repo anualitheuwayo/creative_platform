@@ -20,9 +20,35 @@ ALLOWED_IMAGE_TYPES = {
     "image/webp",
 }
 
+
+ALLOWED_IMAGE_SUFFIXES = {
+    ".jpg",
+    ".jpeg",
+    ".png",
+    ".webp",
+}
+
+
 UPLOAD_DIRECTORY = Path(
     "uploads/profile-images"
 )
+
+
+def mask_public_phone_number(
+    artist_profile: ArtistProfile,
+) -> ArtistProfile:
+    """
+    Hides the phone number for public responses when the Artist
+    has disabled phone-number visibility.
+
+    This changes only the in-memory SQLAlchemy object returned
+    to FastAPI; it does not call db.commit(), so the stored
+    database value remains unchanged.
+    """
+    if not artist_profile.show_phone_number:
+        artist_profile.phone_number = None
+
+    return artist_profile
 
 
 def create_artist_profile(
@@ -57,15 +83,26 @@ def create_artist_profile(
         location=profile_data.location,
         hourly_rate=profile_data.hourly_rate,
         profile_image_url=profile_image_url,
+        phone_number=profile_data.phone_number,
+        show_phone_number=profile_data.show_phone_number,
     )
 
 
 def get_artist_profiles(
     db: Session,
 ) -> list[ArtistProfile]:
-    return artist_profile_repository.get_artist_profiles(
-        db=db,
+    artist_profiles = (
+        artist_profile_repository.get_artist_profiles(
+            db=db,
+        )
     )
+
+    return [
+        mask_public_phone_number(
+            artist_profile=artist_profile,
+        )
+        for artist_profile in artist_profiles
+    ]
 
 
 def get_artist_profile(
@@ -85,7 +122,9 @@ def get_artist_profile(
             detail="Artist profile not found.",
         )
 
-    return artist_profile
+    return mask_public_phone_number(
+        artist_profile=artist_profile,
+    )
 
 
 def get_my_artist_profile(
@@ -174,19 +213,10 @@ def upload_my_profile_image(
         image.filename or ""
     ).suffix.lower()
 
-    allowed_suffixes = {
-        ".jpg",
-        ".jpeg",
-        ".png",
-        ".webp",
-    }
-
-    if original_suffix not in allowed_suffixes:
+    if original_suffix not in ALLOWED_IMAGE_SUFFIXES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=(
-                "Invalid image file extension."
-            ),
+            detail="Invalid image file extension.",
         )
 
     UPLOAD_DIRECTORY.mkdir(
