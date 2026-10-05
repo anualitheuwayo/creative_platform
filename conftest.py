@@ -84,11 +84,10 @@ def client(db_session):
 
     app.dependency_overrides[get_db] = override_get_db
 
-    try:
-        with TestClient(app) as test_client:
-            yield test_client
-    finally:
-        app.dependency_overrides.clear()
+    with TestClient(app) as test_client:
+        yield test_client
+
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture()

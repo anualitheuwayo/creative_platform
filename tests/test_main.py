@@ -16,7 +16,7 @@ def test_home_endpoint():
     assert response.status_code == 200
 
     assert response.json() == {
-        "message": "Welcome to the Creative Marketplace API",
+        "message": "Welcome to the Creative Platform API",
     }
 
 
@@ -30,7 +30,7 @@ def test_openapi_schema_is_available():
     openapi_schema = response.json()
 
     assert openapi_schema["info"]["title"] == (
-        "Creative Marketplace API"
+        "Creative Platform API"
     )
 
 
